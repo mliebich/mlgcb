@@ -218,6 +218,7 @@ class PersonalProfileDTO(object):
             self.email = personal_profile.email
             self.legal_name = personal_profile.legal_name
             self.nick_name = personal_profile.nick_name
+            self.attendance = personal_profile.attendance
             self.date_of_birth = personal_profile.date_of_birth
             self.enrollment_info = personal_profile.enrollment_info
             self.course_info = personal_profile.course_info
@@ -255,7 +256,7 @@ class StudentProfileDAO(object):
             namespace_manager.set_namespace(old_namespace)
 
     @classmethod
-    def _add_new_profile(cls, user_id, email):
+    def _add_new_profile(cls, user_id, email, attendance):
         """Adds new profile for a user_id and returns Entity object."""
         if not CAN_SHARE_STUDENT_PROFILE.value:
             return None
@@ -266,6 +267,7 @@ class StudentProfileDAO(object):
 
             profile = PersonalProfile(key_name=user_id)
             profile.email = email
+            profile.attendance = attendance
             profile.enrollment_info = '{}'
             profile.put()
             return profile
@@ -275,7 +277,7 @@ class StudentProfileDAO(object):
     @classmethod
     def _update_global_profile_attributes(
         cls, profile,
-        email=None, legal_name=None, nick_name=None,
+        email=None, legal_name=None, nick_name=None, attendance=None,
         date_of_birth=None, is_enrolled=None, final_grade=None,
         course_info=None):
         """Modifies various attributes of Student's Global Profile."""
@@ -375,11 +377,11 @@ class StudentProfileDAO(object):
 
     @classmethod
     def add_new_profile(cls, user_id, email):
-        return cls._add_new_profile(user_id, email)
+        return cls._add_new_profile(user_id, email, attendance="ok")
 
     @classmethod
     def add_new_student_for_current_user(
-        cls, nick_name, additional_fields, handler, labels=None):
+        cls, nick_name, additional_fields, attendance, handler, labels=None):
         user = users.get_current_user()
 
         student_by_uid = Student.get_student_by_user_id(user.user_id())
@@ -389,7 +391,7 @@ class StudentProfileDAO(object):
             'Student\'s email and user id do not match.')
 
         cls._add_new_student_for_current_user(
-            user.user_id(), user.email(), nick_name, additional_fields, labels)
+            user.user_id(), user.email(), nick_name, additional_fields, attendance, labels)
 
         try:
             cls._send_welcome_notification(handler, user.email())
@@ -400,13 +402,13 @@ class StudentProfileDAO(object):
     @classmethod
     @db.transactional(xg=True)
     def _add_new_student_for_current_user(
-        cls, user_id, email, nick_name, additional_fields, labels=None):
+        cls, user_id, email, nick_name, additional_fields, attendance, labels=None):
         """Create new or re-enroll old student."""
 
         # create profile if does not exist
         profile = cls._get_profile_by_user_id(user_id)
         if not profile:
-            profile = cls._add_new_profile(user_id, email)
+            profile = cls._add_new_profile(user_id, email, attendance="ok")
 
         # create new student or re-enroll existing
         student = Student.get_by_email(email)
@@ -493,7 +495,7 @@ class StudentProfileDAO(object):
     @classmethod
     @db.transactional(xg=True)
     def update(
-        cls, user_id, email, legal_name=None, nick_name=None,
+        cls, user_id, email, legal_name=None, nick_name=None, attendance=None,
         date_of_birth=None, is_enrolled=None, final_grade=None,
         course_info=None, labels=None, profile_only=False):
         """Updates a student and/or their global profile."""
@@ -523,6 +525,7 @@ class Student(BaseEntity):
     enrolled_on = db.DateTimeProperty(auto_now_add=True, indexed=True)
     user_id = db.StringProperty(indexed=True)
     name = db.StringProperty(indexed=False)
+    attendance = db.TextProperty(indexed=False)
     additional_fields = db.TextProperty(indexed=False)
     is_enrolled = db.BooleanProperty(indexed=False)
 

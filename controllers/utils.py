@@ -738,6 +738,7 @@ class StudentProfileHandler(BaseHandler):
                 })
 
         name = student.name
+        attendance = student.attendance
         profile = student.profile
         if profile:
             name = profile.nick_name
@@ -746,6 +747,7 @@ class StudentProfileHandler(BaseHandler):
         self.template_value['navbar'] = {'progress': True}
         self.template_value['student'] = student
         self.template_value['student_name'] = name
+        self.template_value['student_attendance'] = attendance
         self.template_value['date_enrolled'] = student.enrolled_on.strftime(
             HUMAN_READABLE_DATE_FORMAT)
         self.template_value['score_list'] = course.get_all_scores(student)
